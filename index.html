@@ -1,10 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Git Practice</title>
-</head>
-<body>
-  <h1>Hello World!</h1>
-  <p>Git の練習中です</p>
-</body>
-</html>
+// 型を定義
+type GreetingProps = {
+  name: string;
+};
+
+// 子コンポーネント：props を受け取る
+function Greeting(props: GreetingProps) {
+  return <h1>こんにちは、{props.name}さん！</h1>;
+}
+
+// 親コンポーネント：props を渡す
+function App() {
+  return (
+    <div>
+      <Greeting name="田中" />
+      <Greeting name="鈴木" />
+      <Greeting name="佐藤" />
+    </div>
+  );
+}
