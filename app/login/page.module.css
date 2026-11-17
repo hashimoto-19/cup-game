@@ -1,0 +1,134 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  animation: rise 0.55s ease-out both;
+}
+
+.card {
+  width: min(100%, 420px);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px 28px;
+  display: grid;
+  gap: 20px;
+}
+
+.brand {
+  font-family: var(--font-display), "Hiragino Mincho ProN", serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.tagline {
+  color: var(--ink-soft);
+  margin-top: 6px;
+  font-size: 0.95rem;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--paper);
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.tab,
+.tabActive {
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 0.5rem;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tabActive {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(23, 53, 47, 0.08);
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 0.8rem 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input:focus {
+  border-color: rgba(15, 107, 92, 0.35);
+  background: #fff;
+}
+
+.submit {
+  border: none;
+  background: var(--ink);
+  color: #f4faf7;
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.submit:hover:not(:disabled) {
+  background: #0f2a25;
+  transform: translateY(-1px);
+}
+
+.submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.message {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.error {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
