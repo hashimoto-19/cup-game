@@ -1,17 +1,25 @@
-# Supabase セットアップ手順
+# Supabase セットアップ（勉強用）
 
-1. [https://supabase.com](https://supabase.com) でアカウントを作成し、**New project** を作成する
-2. **Project Settings → API** から次を控える
-   - Project URL
-   - anon public key
-3. リポジトリ直下に `.env.local` を作り、次を記入する
+## やることの順番
+
+1. [supabase.com](https://supabase.com) でプロジェクト作成
+2. **Settings → API Keys → Legacy API Keys** で次をコピー
+   - Project URL（`https://xxxx.supabase.co`）
+   - **anon public** キー（`eyJ` で始まるもの）
+3. プロジェクト直下に `.env.local` を作る
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...（anon public）
 ```
 
-4. Supabase ダッシュボードの **SQL Editor** で [`schema.sql`](./schema.sql) の内容を実行する
-5. （開発を簡単にする場合）**Authentication → Providers → Email** で  
-   **Confirm email** をオフにすると、サインアップ直後にログインできる
-6. `npm run dev` を起動し、http://localhost:3000/login でアカウントを作成する
+4. **SQL Editor** で `schema.sql` を全部実行
+5. 開発を簡単にするなら  
+   **Authentication → Sign In / Providers → Email** で Confirm email をオフ
+6. `npm run dev` → http://localhost:3000/login
+
+## よくあるつまずき
+
+- `sb_publishable_...` ではなく **anon（eyJ...）** を使う
+- `permission denied for table memos` → `schema.sql` の GRANT まで実行する
+- `.env.local` を変えたら `npm run dev` をやり直す

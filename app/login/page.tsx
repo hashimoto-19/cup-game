@@ -1,3 +1,7 @@
+/**
+ * ログイン／新規登録画面。
+ * Supabase Auth にメール＋パスワードを送る。
+ */
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -9,6 +13,8 @@ type Mode = "login" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  // 画面の状態
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,13 +23,14 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    event.preventDefault(); // ページリロードを止める
     setLoading(true);
     setError(null);
     setMessage(null);
 
     const supabase = createClient();
 
+    // ----- ログイン -----
     if (mode === "login") {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -31,7 +38,7 @@ export default function LoginPage() {
       });
 
       if (signInError) {
-        setError(translateAuthError(signInError.message));
+        setError(signInError.message);
         setLoading(false);
         return;
       }
@@ -41,28 +48,32 @@ export default function LoginPage() {
       return;
     }
 
+    // ----- 新規登録 -----
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        // 確認メールの戻り先
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (signUpError) {
-      setError(translateAuthError(signUpError.message));
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
+    // メール確認オフなら、すぐセッションが付く
     if (data.session) {
       router.replace("/");
       router.refresh();
       return;
     }
 
+    // メール確認オンの場合
     setMessage(
-      "確認メールを送信しました。メール内のリンクを開いてからログインしてください。",
+      "確認メールを送りました。メール内のリンクを開いてからログインしてください。",
     );
     setLoading(false);
   }
@@ -75,11 +86,10 @@ export default function LoginPage() {
           <p className={styles.tagline}>ログインして、メモをクラウドに残す</p>
         </div>
 
-        <div className={styles.tabs} role="tablist" aria-label="認証モード">
+        {/* ログイン / 新規登録の切り替え */}
+        <div className={styles.tabs}>
           <button
             type="button"
-            role="tab"
-            aria-selected={mode === "login"}
             className={mode === "login" ? styles.tabActive : styles.tab}
             onClick={() => {
               setMode("login");
@@ -91,8 +101,6 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={mode === "signup"}
             className={mode === "signup" ? styles.tabActive : styles.tab}
             onClick={() => {
               setMode("signup");
@@ -110,7 +118,6 @@ export default function LoginPage() {
             <input
               className={styles.input}
               type="email"
-              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -122,7 +129,6 @@ export default function LoginPage() {
             <input
               className={styles.input}
               type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
               required
               minLength={6}
               value={password}
@@ -144,21 +150,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
-
-function translateAuthError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes("invalid login credentials")) {
-    return "メールアドレスまたはパスワードが正しくありません。";
-  }
-  if (lower.includes("user already registered")) {
-    return "このメールアドレスはすでに登録されています。";
-  }
-  if (lower.includes("password")) {
-    return "パスワードは6文字以上で入力してください。";
-  }
-  if (lower.includes("email")) {
-    return "メールアドレスの形式を確認してください。";
-  }
-  return message;
 }

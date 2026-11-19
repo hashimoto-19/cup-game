@@ -1,13 +1,19 @@
+/**
+ * メモの CRUD（作成・読取・更新・削除）をまとめたファイル。
+ * 実際のデータは Supabase の memos テーブルにある。
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// 画面で使うメモの形
 export type Memo = {
   id: string;
   title: string;
   body: string;
-  updatedAt: number;
+  updatedAt: number; // ミリ秒（Date.getTime()）
   createdAt: number;
 };
 
+// DB から返ってくる行の形（スネークケース）
 type MemoRow = {
   id: string;
   title: string;
@@ -16,6 +22,7 @@ type MemoRow = {
   created_at: string;
 };
 
+// DB の行 → 画面用の形に変換
 function toMemo(row: MemoRow): Memo {
   return {
     id: row.id,
@@ -26,6 +33,7 @@ function toMemo(row: MemoRow): Memo {
   };
 }
 
+/** 自分のメモ一覧を新しい順で取得 */
 export async function listMemos(supabase: SupabaseClient): Promise<Memo[]> {
   const { data, error } = await supabase
     .from("memos")
@@ -36,10 +44,12 @@ export async function listMemos(supabase: SupabaseClient): Promise<Memo[]> {
   return (data as MemoRow[]).map(toMemo);
 }
 
+/** 新しいメモを1件作る */
 export async function createMemo(
   supabase: SupabaseClient,
-  partial?: Partial<Pick<Memo, "title" | "body">>,
+  partial?: { title?: string; body?: string },
 ): Promise<Memo> {
+  // 誰のメモかを入れるため、今のユーザー ID を取得
   const {
     data: { user },
     error: userError,
@@ -62,18 +72,26 @@ export async function createMemo(
   return toMemo(data as MemoRow);
 }
 
+/** 既存メモのタイトル／本文を更新 */
 export async function updateMemo(
   supabase: SupabaseClient,
   id: string,
-  patch: Partial<Pick<Memo, "title" | "body">>,
+  patch: { title?: string; body?: string },
 ): Promise<Memo> {
+  // 送るデータだけを組み立てる（undefined は送らない）
+  const dataToUpdate: {
+    title?: string;
+    body?: string;
+    updated_at: string;
+  } = {
+    updated_at: new Date().toISOString(),
+  };
+  if (patch.title !== undefined) dataToUpdate.title = patch.title;
+  if (patch.body !== undefined) dataToUpdate.body = patch.body;
+
   const { data, error } = await supabase
     .from("memos")
-    .update({
-      ...("title" in patch ? { title: patch.title } : {}),
-      ...("body" in patch ? { body: patch.body } : {}),
-      updated_at: new Date().toISOString(),
-    })
+    .update(dataToUpdate)
     .eq("id", id)
     .select("id, title, body, updated_at, created_at")
     .single();
@@ -82,6 +100,7 @@ export async function updateMemo(
   return toMemo(data as MemoRow);
 }
 
+/** メモを1件削除 */
 export async function deleteMemo(
   supabase: SupabaseClient,
   id: string,
@@ -90,15 +109,16 @@ export async function deleteMemo(
   if (error) throw error;
 }
 
+/** 更新時刻を見やすい文字にする */
 export function formatUpdatedAt(ts: number): string {
   const d = new Date(ts);
   const now = new Date();
-  const sameDay =
+  const isToday =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
 
-  if (sameDay) {
+  if (isToday) {
     return d.toLocaleTimeString("ja-JP", {
       hour: "2-digit",
       minute: "2-digit",
@@ -111,19 +131,9 @@ export function formatUpdatedAt(ts: number): string {
   });
 }
 
+/** 一覧用の短いプレビュー文 */
 export function previewText(memo: Memo): string {
   const text = memo.body.trim() || memo.title.trim();
   if (!text) return "空のメモ";
   return text.length > 72 ? `${text.slice(0, 72)}…` : text;
-}
-
-export function translateMemoError(error: unknown): string {
-  if (error && typeof error === "object" && "message" in error) {
-    const message = String((error as { message: string }).message);
-    if (message.toLowerCase().includes("jwt")) {
-      return "セッションが切れました。再ログインしてください。";
-    }
-    return message;
-  }
-  return "操作に失敗しました。もう一度お試しください。";
 }

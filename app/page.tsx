@@ -1,3 +1,12 @@
+/**
+ * メモ画面（このアプリのメイン）。
+ *
+ * やっていること:
+ * 1. ログイン確認
+ * 2. メモ一覧を取得
+ * 3. 選んで編集（少し待ってから自動保存）
+ * 4. 新規作成・削除・ログアウト
+ */
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -10,172 +19,170 @@ import {
   formatUpdatedAt,
   listMemos,
   previewText,
-  translateMemoError,
   updateMemo,
   type Memo,
 } from "../lib/memos";
 
-const SAVE_DEBOUNCE_MS = 400;
+// 入力が止まってから何ミリ秒後に保存するか
+const SAVE_WAIT_MS = 400;
 
 export default function MemoApp() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+
+  // ----- 画面の状態 -----
   const [memos, setMemos] = useState<Memo[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [ready, setReady] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [status, setStatus] = useState("読み込み中…");
   const [error, setError] = useState<string | null>(null);
+
+  // 自動保存用タイマー
   const saveTimer = useRef<number | null>(null);
-  const pendingPatch = useRef<Partial<Pick<Memo, "title" | "body">> | null>(
-    null,
-  );
 
+  // いま選んでいるメモ
+  const selected = memos.find((m) => m.id === selectedId) ?? null;
+
+  // 検索で絞り込んだ一覧
+  const filtered = memos.filter((m) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q)
+    );
+  });
+
+  // ----- 最初の読み込み -----
   useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
+    async function start() {
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
+        // 未ログインならログイン画面へ（proxy でも守っている）
         if (!user) {
           router.replace("/login");
           return;
         }
 
         let rows = await listMemos(supabase);
+
+        // 1件も無いときは最初のメモを作る
         if (rows.length === 0) {
           const first = await createMemo(supabase, {
             title: "はじめてのメモ",
-            body: "ここに思いついたことを書いてください。\n内容はクラウドに自動保存されます。",
+            body: "ここに書いてください。クラウドに自動保存されます。",
           });
           rows = [first];
         }
 
-        if (cancelled) return;
         setMemos(rows);
-        setSelectedId(rows[0]?.id ?? null);
+        setSelectedId(rows[0].id);
+        setStatus(`更新 ${formatUpdatedAt(rows[0].updatedAt)}`);
         setReady(true);
       } catch (err) {
-        if (cancelled) return;
-        setError(translateMemoError(err));
+        setError(err instanceof Error ? err.message : String(err));
         setReady(true);
       }
     }
 
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
+    void start();
   }, [router, supabase]);
 
+  // 画面を離れるときにタイマーを消す
   useEffect(() => {
     return () => {
-      if (saveTimer.current) {
-        window.clearTimeout(saveTimer.current);
-      }
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return memos;
-    return memos.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q),
-    );
-  }, [memos, query]);
-
-  const selected = memos.find((m) => m.id === selectedId) ?? null;
-
-  async function flushSave(id: string) {
-    const patch = pendingPatch.current;
-    pendingPatch.current = null;
-    if (!patch || Object.keys(patch).length === 0) return;
-
-    setSaving(true);
+  // ----- クラウドへ保存 -----
+  async function saveToCloud(id: string, title: string, body: string) {
+    setStatus("保存中…");
     setError(null);
     try {
-      const updated = await updateMemo(supabase, id, patch);
+      const updated = await updateMemo(supabase, id, { title, body });
       setMemos((prev) =>
         prev
           .map((m) => (m.id === id ? updated : m))
           .sort((a, b) => b.updatedAt - a.updatedAt),
       );
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 900);
+      setStatus("保存しました");
     } catch (err) {
-      setError(translateMemoError(err));
-    } finally {
-      setSaving(false);
+      setError(err instanceof Error ? err.message : String(err));
+      setStatus("保存に失敗しました");
     }
   }
 
-  function scheduleSave(id: string) {
-    if (saveTimer.current) {
-      window.clearTimeout(saveTimer.current);
-    }
+  // 入力のたびに「少し待ってから保存」を予約
+  function scheduleSave(id: string, title: string, body: string) {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      void flushSave(id);
-    }, SAVE_DEBOUNCE_MS);
+      void saveToCloud(id, title, body);
+    }, SAVE_WAIT_MS);
   }
 
-  async function handleCreate() {
+  // タイトルや本文が変わったとき
+  function onEdit(field: "title" | "body", value: string) {
+    if (!selected) return;
+
+    // 1. まず画面だけ更新（すぐ反映）
+    const nextTitle = field === "title" ? value : selected.title;
+    const nextBody = field === "body" ? value : selected.body;
+
+    setMemos((prev) =>
+      prev.map((m) =>
+        m.id === selected.id
+          ? { ...m, title: nextTitle, body: nextBody, updatedAt: Date.now() }
+          : m,
+      ),
+    );
+
+    // 2. 少し待ってからクラウドへ保存
+    scheduleSave(selected.id, nextTitle, nextBody);
+  }
+
+  // ----- 新しいメモ -----
+  async function onCreate() {
     setError(null);
     try {
-      if (selectedId && pendingPatch.current) {
-        if (saveTimer.current) window.clearTimeout(saveTimer.current);
-        await flushSave(selectedId);
-      }
       const memo = await createMemo(supabase);
       setMemos((prev) => [memo, ...prev]);
       setSelectedId(memo.id);
       setQuery("");
+      setStatus("新しいメモを作成しました");
     } catch (err) {
-      setError(translateMemoError(err));
+      setError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  function updateSelected(patch: Partial<Pick<Memo, "title" | "body">>) {
-    if (!selectedId) return;
-    pendingPatch.current = { ...pendingPatch.current, ...patch };
-    setMemos((prev) =>
-      prev.map((m) =>
-        m.id === selectedId
-          ? { ...m, ...patch, updatedAt: Date.now() }
-          : m,
-      ),
-    );
-    scheduleSave(selectedId);
-  }
-
-  async function handleDelete() {
-    if (!selectedId) return;
+  // ----- 削除 -----
+  async function onDelete() {
+    if (!selected) return;
     setError(null);
-    const id = selectedId;
+
+    // 保存待ちがあればキャンセル
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+
     try {
-      if (saveTimer.current) {
-        window.clearTimeout(saveTimer.current);
-        saveTimer.current = null;
-      }
-      pendingPatch.current = null;
-      await deleteMemo(supabase, id);
-      const next = memos.filter((m) => m.id !== id);
+      await deleteMemo(supabase, selected.id);
+      const next = memos.filter((m) => m.id !== selected.id);
       setMemos(next);
       setSelectedId(next[0]?.id ?? null);
+      setStatus(next[0] ? `更新 ${formatUpdatedAt(next[0].updatedAt)}` : "");
     } catch (err) {
-      setError(translateMemoError(err));
+      setError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  async function handleLogout() {
-    if (selectedId && pendingPatch.current) {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
-      await flushSave(selectedId);
-    }
+  // ----- ログアウト -----
+  async function onLogout() {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
     await supabase.auth.signOut();
     router.replace("/login");
     router.refresh();
@@ -188,29 +195,22 @@ export default function MemoApp() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <div className={styles.brandBlock}>
+        <div>
           <h1 className={styles.brand}>メモ</h1>
           <p className={styles.tagline}>思いついたことを、すぐに残す</p>
         </div>
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.logoutButton}
-            onClick={() => void handleLogout()}
-          >
+          <button type="button" className={styles.logoutButton} onClick={onLogout}>
             ログアウト
           </button>
-          <button
-            type="button"
-            className={styles.newButton}
-            onClick={() => void handleCreate()}
-          >
+          <button type="button" className={styles.newButton} onClick={onCreate}>
             新しいメモ
           </button>
         </div>
       </header>
 
       <div className={styles.workspace}>
+        {/* 左: 一覧 */}
         <aside className={styles.sidebar}>
           <div className={styles.searchWrap}>
             <input
@@ -219,7 +219,6 @@ export default function MemoApp() {
               placeholder="メモを検索"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="メモを検索"
             />
           </div>
 
@@ -229,77 +228,55 @@ export default function MemoApp() {
             </p>
           ) : (
             <ul className={styles.list}>
-              {filtered.map((memo) => {
-                const active = memo.id === selectedId;
-                return (
-                  <li key={memo.id}>
-                    <button
-                      type="button"
-                      className={`${styles.listItem} ${active ? styles.listItemActive : ""}`}
-                      onClick={() => {
-                        if (
-                          selectedId &&
-                          selectedId !== memo.id &&
-                          pendingPatch.current
-                        ) {
-                          if (saveTimer.current) {
-                            window.clearTimeout(saveTimer.current);
-                          }
-                          void flushSave(selectedId);
-                        }
-                        setSelectedId(memo.id);
-                      }}
-                    >
-                      <span className={styles.itemTitle}>
-                        {memo.title.trim() || "無題のメモ"}
-                      </span>
-                      <span className={styles.itemPreview}>
-                        {previewText(memo)}
-                      </span>
-                      <span className={styles.itemMeta}>
-                        {formatUpdatedAt(memo.updatedAt)}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
+              {filtered.map((memo) => (
+                <li key={memo.id}>
+                  <button
+                    type="button"
+                    className={`${styles.listItem} ${
+                      memo.id === selectedId ? styles.listItemActive : ""
+                    }`}
+                    onClick={() => setSelectedId(memo.id)}
+                  >
+                    <span className={styles.itemTitle}>
+                      {memo.title.trim() || "無題のメモ"}
+                    </span>
+                    <span className={styles.itemPreview}>
+                      {previewText(memo)}
+                    </span>
+                    <span className={styles.itemMeta}>
+                      {formatUpdatedAt(memo.updatedAt)}
+                    </span>
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
         </aside>
 
+        {/* 右: 編集 */}
         <section className={styles.editor}>
           {selected ? (
             <>
-              <div className={styles.editorTop}>
-                <input
-                  className={styles.titleInput}
-                  value={selected.title}
-                  onChange={(e) => updateSelected({ title: e.target.value })}
-                  placeholder="タイトル"
-                  aria-label="メモのタイトル"
-                />
-              </div>
+              <input
+                className={styles.titleInput}
+                value={selected.title}
+                onChange={(e) => onEdit("title", e.target.value)}
+                placeholder="タイトル"
+              />
               <textarea
                 className={styles.bodyInput}
                 value={selected.body}
-                onChange={(e) => updateSelected({ body: e.target.value })}
+                onChange={(e) => onEdit("body", e.target.value)}
                 placeholder="本文を書く…"
-                aria-label="メモの本文"
               />
               <div className={styles.editorFooter}>
                 <span className={error ? styles.statusError : styles.status}>
-                  {error
-                    ? error
-                    : saving
-                      ? "保存中…"
-                      : savedFlash
-                        ? "保存しました"
-                        : `更新 ${formatUpdatedAt(selected.updatedAt)}`}
+                  {error ?? status}
                 </span>
                 <button
                   type="button"
                   className={styles.deleteButton}
-                  onClick={() => void handleDelete()}
+                  onClick={onDelete}
                 >
                   削除
                 </button>
@@ -307,15 +284,7 @@ export default function MemoApp() {
             </>
           ) : (
             <p className={styles.emptyEditor}>
-              左の一覧からメモを選ぶか、
-              <br />
-              「新しいメモ」を作成してください。
-              {error ? (
-                <>
-                  <br />
-                  <span className={styles.statusError}>{error}</span>
-                </>
-              ) : null}
+              左からメモを選ぶか、「新しいメモ」を押してください。
             </p>
           )}
         </section>

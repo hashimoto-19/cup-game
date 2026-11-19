@@ -1,131 +1,102 @@
+/* メモ画面のレイアウト */
+
 .shell {
   min-height: 100dvh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 20px;
-  padding: clamp(16px, 3vw, 36px);
-  max-width: 1180px;
+  max-width: 1100px;
   margin: 0 auto;
-  animation: rise 0.55s ease-out both;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+  grid-template-rows: auto 1fr;
 }
 
 .header {
   display: flex;
-  align-items: end;
   justify-content: space-between;
-  gap: 16px;
+  align-items: end;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.brandBlock {
-  display: grid;
-  gap: 6px;
-}
-
 .brand {
-  font-family: var(--font-display), "Hiragino Mincho ProN", serif;
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: var(--font-display), serif;
+  font-size: 2.6rem;
   line-height: 1;
-  animation: brandIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .tagline {
   color: var(--ink-soft);
-  font-size: 0.98rem;
-  letter-spacing: 0.02em;
-  animation: fadeUp 0.6s ease 0.12s both;
+  margin-top: 6px;
 }
 
 .headerActions {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  animation: fadeUp 0.6s ease 0.18s both;
+}
+
+.logoutButton,
+.newButton,
+.deleteButton {
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
 }
 
 .logoutButton {
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--ink-soft);
-  padding: 0.85rem 1.1rem;
-  border-radius: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-
-.logoutButton:hover {
   background: #fff;
-  color: var(--ink);
+  border-color: var(--line);
+  color: var(--ink-soft);
 }
 
 .newButton {
-  border: none;
   background: var(--ink);
-  color: #f4faf7;
-  padding: 0.85rem 1.25rem;
-  border-radius: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 10px 24px rgba(23, 53, 47, 0.18);
+  color: #fff;
 }
 
-.newButton:hover {
-  background: #0f2a25;
-  transform: translateY(-1px);
+.deleteButton {
+  background: transparent;
+  color: var(--danger);
 }
 
-.newButton:active {
-  transform: translateY(0);
+.deleteButton:hover {
+  background: var(--danger-soft);
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) 1fr;
-  gap: 16px;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
   min-height: 0;
-  height: min(74dvh, 760px);
-  animation: fadeUp 0.65s ease 0.2s both;
+  height: min(70dvh, 720px);
 }
 
 .sidebar,
 .editor {
   background: var(--panel);
-  backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar {
   display: grid;
   grid-template-rows: auto 1fr;
-  overflow: hidden;
 }
 
 .searchWrap {
-  padding: 14px 14px 10px;
+  padding: 12px;
   border-bottom: 1px solid var(--line);
 }
 
 .search {
   width: 100%;
-  border: 1px solid transparent;
+  border: none;
   background: var(--paper);
-  border-radius: 12px;
-  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.search:focus {
-  border-color: rgba(15, 107, 92, 0.35);
-  background: #fff;
 }
 
 .list {
@@ -133,7 +104,7 @@
   overflow: auto;
   padding: 8px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   align-content: start;
 }
 
@@ -142,197 +113,112 @@
   text-align: left;
   border: 1px solid transparent;
   background: transparent;
-  border-radius: 12px;
-  padding: 12px 12px 10px;
+  border-radius: 10px;
+  padding: 10px;
   display: grid;
-  gap: 4px;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  gap: 2px;
 }
 
 .listItem:hover {
-  background: rgba(255, 255, 255, 0.7);
+  background: #fff;
 }
 
 .listItemActive {
   background: #fff;
-  border-color: rgba(15, 107, 92, 0.28);
+  border-color: rgba(15, 107, 92, 0.3);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .itemTitle {
   font-weight: 500;
-  font-size: 0.98rem;
-  white-space: nowrap;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.itemPreview {
-  color: var(--ink-soft);
-  font-size: 0.82rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.itemMeta {
-  color: rgba(61, 92, 84, 0.75);
-  font-size: 0.74rem;
-  margin-top: 2px;
-}
-
+.itemPreview,
+.itemMeta,
+.status,
 .emptyList,
-.emptyEditor {
+.emptyEditor,
+.loading {
   color: var(--ink-soft);
-  padding: 28px 18px;
-  text-align: center;
-  line-height: 1.7;
+}
+
+.itemPreview,
+.itemMeta {
+  font-size: 0.82rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .editor {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  overflow: hidden;
-}
-
-.editorTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px 8px;
 }
 
 .titleInput {
-  flex: 1;
   border: none;
   background: transparent;
   outline: none;
-  font-family: var(--font-display), "Hiragino Mincho ProN", serif;
-  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  padding: 16px 16px 8px;
+  font-family: var(--font-display), serif;
+  font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
 .bodyInput {
-  width: 100%;
-  height: 100%;
   border: none;
   resize: none;
   outline: none;
   background: transparent;
-  padding: 8px 18px 12px;
-  line-height: 1.85;
-  font-size: 1.02rem;
+  padding: 8px 16px;
+  line-height: 1.8;
 }
 
 .editorFooter {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding: 12px 18px 16px;
+  padding: 12px 16px;
   border-top: 1px solid var(--line);
-}
-
-.status {
-  color: var(--ink-soft);
-  font-size: 0.85rem;
-  letter-spacing: 0.02em;
 }
 
 .statusError {
   color: var(--danger);
   font-size: 0.85rem;
-  letter-spacing: 0.02em;
 }
 
-.deleteButton {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--danger);
-  padding: 0.55rem 0.9rem;
-  border-radius: 10px;
-  transition: background 0.15s ease, border-color 0.15s ease;
+.status {
+  font-size: 0.85rem;
 }
 
-.deleteButton:hover {
-  background: var(--danger-soft);
-  border-color: rgba(155, 59, 50, 0.18);
+.emptyList,
+.emptyEditor,
+.loading {
+  padding: 24px;
+  text-align: center;
 }
 
 .loading {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  color: var(--ink-soft);
-  letter-spacing: 0.08em;
 }
 
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes brandIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
-    letter-spacing: 0.12em;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    letter-spacing: 0.04em;
-  }
-}
-
-@media (max-width: 840px) {
+@media (max-width: 800px) {
   .workspace {
     grid-template-columns: 1fr;
     height: auto;
   }
 
   .sidebar {
-    max-height: 280px;
+    max-height: 260px;
   }
 
   .editor {
     min-height: 420px;
-  }
-}
-
-@media (max-width: 520px) {
-  .shell {
-    padding: 14px;
-    gap: 14px;
-  }
-
-  .header {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .headerActions,
-  .newButton,
-  .logoutButton {
-    width: 100%;
   }
 }

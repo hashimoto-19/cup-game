@@ -1,3 +1,7 @@
+/**
+ * ブラウザ（画面）から Supabase に接続するためのクライアント。
+ * `.env.local` の URL と anon key を使う。
+ */
 import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient() {

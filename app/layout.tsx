@@ -1,3 +1,7 @@
+/**
+ * 全ページ共通の枠。
+ * フォントとページタイトルをここで設定する。
+ */
 import type { Metadata } from "next";
 import { Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
